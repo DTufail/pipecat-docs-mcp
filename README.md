@@ -42,7 +42,7 @@ Indexes 6,936 chunks from the Pipecat docs and exposes them through 4 MCP tools.
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/your-username/pipecat-docs-mcp.git
+git clone https://github.com/dtufail/pipecat-docs-mcp.git
 cd pipecat-docs-mcp
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
