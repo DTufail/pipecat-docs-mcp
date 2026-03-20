@@ -12,8 +12,10 @@ Usage:
 """
 
 import os
-# Prevent macOS segfault from HuggingFace tokenizer multiprocessing
+# Prevent macOS segfault from PyTorch + HuggingFace multiprocessing
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 import argparse
 import json
@@ -209,12 +211,17 @@ def main() -> None:
         "--input", default=str(config.CHUNKS_FILE), help="Path to chunks.jsonl"
     )
     parser.add_argument(
+        "--issues", default=str(config.DATA_DIR / "github_issues.jsonl"),
+        help="Path to github_issues.jsonl (merged if present)"
+    )
+    parser.add_argument(
         "--output", default=str(config.DATA_DIR), help="Output directory for indexes"
     )
     args = parser.parse_args()
 
-    input_path = Path(args.input)
-    output_dir = Path(args.output)
+    input_path  = Path(args.input)
+    issues_path = Path(args.issues)
+    output_dir  = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if not input_path.exists():
@@ -224,7 +231,16 @@ def main() -> None:
     t0 = time.time()
     log.info("Loading chunks from %s …", input_path)
     chunks = load_chunks(input_path)
-    log.info("Loaded %d chunks", len(chunks))
+    log.info("Loaded %d doc chunks", len(chunks))
+
+    if issues_path.exists():
+        issue_chunks = load_chunks(issues_path)
+        log.info("Merging %d GitHub Issue chunks from %s", len(issue_chunks), issues_path)
+        chunks = chunks + issue_chunks
+    else:
+        log.info("No GitHub Issues file found at %s — skipping (run github_indexer.py to add it)", issues_path)
+
+    log.info("Total chunks to index: %d", len(chunks))
 
     # Show quick distribution
     from collections import Counter

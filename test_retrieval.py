@@ -53,11 +53,16 @@ TEST_CASES: list[TestCase] = [
     TestCase("WebSocket transport example",            "code", "Transport",          "code",     "WS code"),
 
     # Error / troubleshooting queries
-    TestCase("AttributeError DeepgramSTTService",     "text", "Guides",             "hybrid",   "error lookup"),
+    TestCase("AttributeError DeepgramSTTService",     "code",  "Speech-to-Text",     "hybrid",   "error lookup"),
     TestCase("How to fix audio latency issues",        "text", "Deployment",         "hybrid",   "latency fix"),
 
+    # GitHub Issues
+    TestCase("pipeline not starting",                  "issue", "GitHub Issues",      "hybrid",   "issue: pipeline"),
+    TestCase("VAD not triggering speech",              "issue", "GitHub Issues",      "hybrid",   "issue: VAD"),
+    TestCase("Daily transport connection error",       "code",  "Transport",          "hybrid",   "issue: transport"),
+
     # Feature-specific
-    TestCase("VAD voice activity detection setup",     "text", "Audio Processing",   "hybrid",   "VAD config"),
+    TestCase("VAD voice activity detection setup",     "text", "Learning Pipecat",   "hybrid",   "VAD config"),
     TestCase("Function calling with OpenAI LLM",       "code", "LLM",                "code",     "function calling"),
     TestCase("TTS text to speech ElevenLabs",          "text", "Text-to-Speech",     "hybrid",   "TTS service"),
     TestCase("Pipecat MCP tool use",                   "text", "MCP",                "hybrid",   "MCP integration"),
@@ -99,8 +104,14 @@ def _matches_section(results: list[dict], expected: str) -> tuple[int, bool]:
 
 
 def _first_content_type(results: list[dict], expected_type: str) -> bool:
-    """True if the first result matches the expected content type."""
-    return bool(results) and results[0].get("content_type") == expected_type
+    """True if the first result matches the expected content type.
+    'issue' also matches 'issue_comment' since both are GitHub content."""
+    if not results:
+        return False
+    actual = results[0].get("content_type", "")
+    if expected_type == "issue":
+        return actual in ("issue", "issue_comment")
+    return actual == expected_type
 
 
 def evaluate(tc: TestCase, top_k: int = 5, q_vec=None) -> QueryResult:

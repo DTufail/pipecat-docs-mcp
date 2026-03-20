@@ -232,14 +232,18 @@ def _index_to_chunk(doc_idx: int) -> dict:
     store = get_store()
     meta  = store.metadata()
     if not hasattr(store, "_id_list"):
-        # Build ordered list matching the index order
-        chunks_file = config.CHUNKS_FILE
+        # Build ordered list matching the order indexer.py used:
+        # 1) chunks.jsonl  2) github_issues.jsonl (if present)
         store._id_list = []
-        with open(chunks_file) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    store._id_list.append(json.loads(line)["chunk_id"])
+        sources = [config.CHUNKS_FILE, config.DATA_DIR / "github_issues.jsonl"]
+        for path in sources:
+            if not path.exists():
+                continue
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        store._id_list.append(json.loads(line)["chunk_id"])
     chunk_id = store._id_list[doc_idx]
     return meta[chunk_id]
 
@@ -327,16 +331,21 @@ def search(
 
 
 def _get_chunks_list() -> list[dict]:
-    """Return all chunks as a positional list (cached on store)."""
+    """Return all chunks as a positional list (cached on store).
+    Must match the order indexer.py used: chunks.jsonl then github_issues.jsonl."""
     store = get_store()
     if not hasattr(store, "_chunks_list"):
         import json as _json
         store._chunks_list = []
-        with open(config.CHUNKS_FILE) as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    store._chunks_list.append(_json.loads(line))
+        sources = [config.CHUNKS_FILE, config.DATA_DIR / "github_issues.jsonl"]
+        for path in sources:
+            if not path.exists():
+                continue
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        store._chunks_list.append(_json.loads(line))
     return store._chunks_list
 
 
